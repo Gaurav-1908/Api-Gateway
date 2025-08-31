@@ -15,5 +15,5 @@ app.use(rateLimiter);
 app.use(getResponse)
 
 app.listen(PORT, LISTEN, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server succesfully started on ${PORT}`);
 });
