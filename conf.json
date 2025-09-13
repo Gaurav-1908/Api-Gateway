@@ -1,19 +1,18 @@
 {
   "server": {
-    "port": 8080,
+    "port": 80,
     "listen": "0.0.0.0"
   },
   "redis": {
     "host": "localhost",
     "port": 6379
   },
+  "mongo": {
+    "url": "mongodb://localhost:27017"
+  },
   "loadbalancer": {
     "services": [
       {
-        "rateLimiter": {
-          "limit": 100,
-          "window": 60
-        },
         "group": "user-service",
         "location": "/user",
         "hosts": [
@@ -21,7 +20,11 @@
           "http://localhost:3001/user",
           "http://localhost:3002/user",
           "http://localhost:3003/user"
-        ]
+        ],
+        "rateLimiter": {
+          "limit": 100,
+          "window": 60
+        }
       },
       {
         "group": "order-service",
