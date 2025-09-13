@@ -1,0 +1,33 @@
+{
+  "server": {
+    "port": 80
+  },
+  "rateLimiter": {
+    "limit": 100,
+    "window": 60
+  },
+  "loadbalancer": {
+    "services": [
+      {
+        "group": "user-service",
+        "location": "/user",
+        "hosts": [
+          "http://localhost:3000/user",
+          "http://localhost:3001/user",
+          "http://localhost:3002/user",
+          "http://localhost:3003/user"
+        ]
+      },
+      {
+        "group": "order-service",
+        "location": "/order",
+        "hosts": [
+          "http://localhost:3000/order",
+          "http://localhost:3001/order",
+          "http://localhost:3002/order",
+          "http://localhost:3003/order"
+        ]
+      }
+    ]
+  }
+}
