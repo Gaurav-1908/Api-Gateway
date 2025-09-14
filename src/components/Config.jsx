@@ -1,35 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusCircle, Trash2, X, Save } from "lucide-react";
 
-const initialConfig = {
-  server: { port: 80, listen: "0.0.0.0" },
-  loadbalancer: {
-    services: [
-      {
-        group: "user-service",
-        location: "/user",
-        hosts: [
-          "http://localhost:3000/user",
-          "http://localhost:3001/user",
-        ],
-        rateLimiter: { limit: 100, window: 60 },
-      },
-      {
-        group: "order-service",
-        location: "/order",
-        hosts: [
-          "http://localhost:3000/order",
-          "http://localhost:3001/order",
-        ],
-      },
-    ],
-  },
-};
-
 export default function Config() {
-  const [config, setConfig] = useState(initialConfig);
+  const [config, setConfig] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSerice() {
+      try {
+        const res = await fetch("/api/config");
+        const data = await res.json();
+
+        setConfig(data);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("❌ Failed to fetch logs:", err);
+      }
+    }
+
+    fetchSerice();
+  }, []);
 
   // Generic change handler
   const handleChange = (path, value) => {
@@ -48,7 +40,9 @@ export default function Config() {
   const addHost = (svcIndex) => {
     setConfig((prev) => {
       const copy = structuredClone(prev);
-      copy.loadbalancer.services[svcIndex].hosts.push("http://localhost:3000/new");
+      copy.loadbalancer.services[svcIndex].hosts.push(
+        ""
+      );
       return copy;
     });
   };
@@ -69,7 +63,7 @@ export default function Config() {
       copy.loadbalancer.services.push({
         group: "new-service",
         location: "/new",
-        hosts: ["http://localhost:3000/new"],
+        hosts: [""],
       });
       return copy;
     });
@@ -84,11 +78,76 @@ export default function Config() {
     });
   };
 
-  const handleSave = () => {
-    console.log("Saved config:", config);
-    alert("✅ Config saved to console!");
-  };
 
+  const handleServerChange = (field,value) => {
+    setConfig((prev) =>{
+      const copy = structuredClone(prev);
+      copy.server[field] = value;
+      return copy;
+    })
+  }
+
+  const handleHostChange = (group,id,value) =>{
+    setConfig((prev) =>{
+      const copy = structuredClone(prev);
+      let serviceToEdit
+      for(let service of copy.loadbalancer?.services){
+        if(service.group == group){
+          serviceToEdit = service;
+          break
+        }
+      }
+      serviceToEdit.hosts[id] = value;
+      return copy;
+    })
+  }
+
+  const handleRateLimiterChange = (group,field,value) => {
+          setConfig((prev) =>{
+      const copy = structuredClone(prev);
+      let serviceToEdit
+      for(let service of copy.loadbalancer?.services){
+        if(service.group == group){
+          serviceToEdit = service;
+          break
+        }
+      }
+      if(serviceToEdit.rateLimiter){
+        serviceToEdit.rateLimiter[field] = value;
+         return copy;
+      }
+      serviceToEdit.rateLimiter = {};
+      serviceToEdit.rateLimiter[field] = value;
+      
+      return copy;
+    })
+  }
+
+const handleSave = async () => {
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(config), // 👈 send your config state
+    });
+
+    if (res.ok) {
+      alert("✅ Config saved successfully!");
+    } else {
+      alert("❌ Failed to save config");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error saving config");
+  }
+};
+
+  if (isLoading) {
+    console.log(isLoading);
+    return <p>Loading.....</p>;
+  }
   return (
     <div>
       <h1 className="text-2xl font-semibold text-slate-800">Configuration</h1>
@@ -104,32 +163,35 @@ export default function Config() {
             <input
               type="number"
               value={config.server.port}
-              onChange={(e) => handleChange(["server", "port"], Number(e.target.value))}
+              onChange={(e) =>
+                handleServerChange(port, Number(e.target.value))
+              }
               className="border rounded px-3 py-1"
               placeholder="Port"
             />
             <input
               type="text"
               value={config.server.listen}
-              onChange={(e) => handleChange(["server", "listen"], e.target.value)}
+              onChange={(e) =>
+                handleChange(listen, e.target.value)
+              }
               className="border rounded px-3 py-1"
               placeholder="Listen"
             />
           </div>
         </div>
 
-
         {/* Load Balancer */}
         <div className="bg-white p-4 rounded shadow">
           <h2 className="font-semibold mb-3 flex justify-between items-center">
             Load Balancer Services
             <button
-                          onClick={() => addService()}
-                          className="mt-3 flex items-center gap-1 px-3 py-1 rounded bg-green-100 text-green-600 hover:bg-green-200 transition"
-                        >
-                          <PlusCircle className="w-4 h-4" />
-                          Add Service
-                        </button>
+              onClick={() => addService()}
+              className="mt-3 flex items-center gap-1 px-3 py-1 rounded bg-green-100 text-green-600 hover:bg-green-200 transition"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Add Service
+            </button>
           </h2>
 
           {config.loadbalancer.services.map((service, serviceID) => (
@@ -150,7 +212,10 @@ export default function Config() {
                   type="text"
                   value={service.group}
                   onChange={(e) =>
-                    handleChange(["loadbalancer", "services", serviceID, "group"], e.target.value)
+                    handleChange(
+                      ["loadbalancer", "services", serviceID, "group"],
+                      e.target.value
+                    )
                   }
                   className="border rounded px-3 py-1"
                   placeholder="Group"
@@ -159,7 +224,10 @@ export default function Config() {
                   type="text"
                   value={service.location}
                   onChange={(e) =>
-                    handleChange(["loadbalancer", "services", serviceID, "location"], e.target.value)
+                    handleChange(
+                      ["loadbalancer", "services", serviceID, "location"],
+                      e.target.value
+                    )
                   }
                   className="border rounded px-3 py-1"
                   placeholder="Location"
@@ -168,57 +236,70 @@ export default function Config() {
 
               {/* Hosts */}
               <h4 className="font-medium mb-2 ">Hosts</h4>
-                {service.hosts.map((host, HostID) => (
-                  <div
-                    key={HostID}
-                    className="flex items-center justify-between bg-white p-2 rounded border mb-2"
+              {service.hosts.map((host, HostID) => (
+                <div
+                  key={HostID}
+                  className="flex items-center justify-between bg-white p-2 rounded border mb-2"
+                >
+                 <input
+                  type="text"
+                  value={host}
+                  onChange={(e) =>
+                    handleHostChange(
+                      service.group, HostID, e.target.value
+                      
+                    )
+                  }
+                  className=" px-3 py-1 focus:outline-none focus:border-transparent"
+                  placeholder="Host Address"
+                />
+                  {/* <span className="font-mono text-sm">{host}</span> */}
+                  <button
+                    onClick={() => deleteHost(serviceID, HostID)}
+                    className="p-1 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
                   >
-                    <span className="font-mono text-sm">{host}</span>
-                    <button
-                      onClick={() => deleteHost(serviceID, HostID)}
-                      className="p-1 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
               <button
-                              onClick={() => addHost(serviceID)}
-                              className="mt-3 flex items-center gap-1 px-3 py-1 rounded bg-green-100 text-green-600 hover:bg-green-200 transition"
-                            >
-                              <PlusCircle className="w-4 h-4" />
-                              Add Host
-                            </button>
+                onClick={() => addHost(serviceID)}
+                className="mt-3 flex items-center gap-1 px-3 py-1 rounded bg-green-100 text-green-600 hover:bg-green-200 transition"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Add Host
+              </button>
 
               {/* Rate limiter */}
-             
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <input
-                    type="number"
-                    value={service.rateLimiter?.limit}
-                    onChange={(e) =>
-                      handleChange(
-                        ["loadbalancer", "services", "rateLimiter", "limit"],
-                        Number(e.target.value)
-                      )
-                    }
-                    className="border rounded px-3 py-1"
-                    placeholder="Rate Limit"
-                  />
-                  <input
-                    type="number"
-                    value={service.rateLimiter?.window}
-                    onChange={(e) =>
-                      handleChange(
-                        ["loadbalancer", "services", "rateLimiter", "window"],
-                        Number(e.target.value)
-                      )
-                    }
-                    className="border rounded px-3 py-1"
-                    placeholder="Window (s)"
-                  />
-                </div>
-              
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <input
+                  type="number"
+                  value={service.rateLimiter?.limit}
+                  onChange={(e) =>
+                    handleRateLimiterChange(
+                      service.group,
+                     "limit",
+                      Number(e.target.value)
+                    )
+                  }
+                  className="border rounded px-3 py-1"
+                  placeholder="Rate Limit"
+                />
+                <input
+                  type="number"
+                  value={service.rateLimiter?.window}
+                  onChange={(e) =>
+                    handleRateLimiterChange(
+                      service.group,
+                      "window",
+                      Number(e.target.value)
+                    )
+                  }
+                  className="border rounded px-3 py-1"
+                  placeholder="Window (s)"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -229,6 +310,7 @@ export default function Config() {
         <button
           onClick={() => {
             // Example: Save logic (send config to backend or localStorage)
+            handleSave();
             console.log("Saving config:", config);
             alert("✅ Config saved successfully!");
           }}
@@ -239,7 +321,7 @@ export default function Config() {
           <Save className="w-5 h-5" />
           Save Config
         </button>
-        </div>
+      </div>
     </div>
   );
 }

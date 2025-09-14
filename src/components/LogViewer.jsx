@@ -43,6 +43,7 @@ export default function LogViewer() {
           status: log.status,
           url: log.url,
           latency: log.responseTime,
+          method: log.method,
           message: log.messagge || log.message, // typo fallback
         }));
 
@@ -55,7 +56,7 @@ export default function LogViewer() {
     fetchLogs();
 
     // Optionally refresh logs every 10s (polling)
-    const interval = setInterval(fetchLogs, 1000);
+    const interval = setInterval(fetchLogs, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -149,7 +150,7 @@ export default function LogViewer() {
                   key={l}
                   onClick={() => toggleLevel(l)}
                   className={clsx(
-                    "px-2 py-1 rounded text-xs font-medium border cursor-pointer",
+                    "px-2 py-1 rounded text-xs font-bold border cursor-pointer",
                     levelFilter.has(l)
                       ? "bg-slate-100 border-slate-200"
                       : "bg-white border-transparent opacity-50"
@@ -231,67 +232,73 @@ export default function LogViewer() {
             className="h-[60vh] overflow-auto border-t border-slate-100"
           >
             <table className="w-full table-fixed text-sm">
-              <thead className="bg-slate-50 sticky top-0 z-10">
+              <thead className="bg-slate-50 sticky top-0 z-10 text-[12px]">
                 <tr>
-                  <th className="w-44 px-4 py-2 text-left font-mono text-xs text-slate-500">
+                  <th className="w-46 px-4 py-4 text-left font-mono  text-slate-500 ">
                     id
                   </th>
-                  <th className="w-44 px-4 py-2 text-left font-mono text-xs text-slate-500">
+                  <th className="w-44 px-4 py-4 text-left font-mono  text-slate-500 ">
                     Timestamp
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-xs">
+                  <th className="px-4 py-4 text-left font-mono  text-slate-500 w-22 ">
                     Level
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-xs">
+                  <th className="px-4 py-4 text-left font-mono  text-slate-500 w-30">
                     Client IP
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-xs">
+                   <th className="px-4 py-4 text-left font-mono  text-slate-500 w-24 ">
+                    Method
+                  </th>
+                  <th className="px-4 py-4 text-left font-mono text-slate-500 w-36">
                     URL
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-xs">
+                  <th className="px-4 py-4 text-left font-mono text-slate-500 whitespace-nowrap  w-40 ">
                     Response Status Code
                   </th>
-                  <th className="px-4 py-2 text-left font-medium text-xs">
+                  <th className="px-4 py-4 text-left font-mono text-slate-500 w-22">
                     Latency
                   </th>
-                  <th className="px-4 py-2 text-left">Message</th>
+                  {/* <th className="px-4 py-4 text-left font-mono  text-slate-500">Message</th> */}
                 </tr>
               </thead>
               <tbody>
                 {visible.map((lg, index) => (
                   <tr
                     key={lg.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
+                    className="border-b border-slate-200 hover:bg-slate-50 text-[12px]"
                   >
-                    <td className="px-4 py-2 font-mono text-xs text-blue-600 underline">
+                    <td className="px-4 text-left py-4 font-mono  text-blue-600 underline ">
                       <Link href={`/logs/${lg.id}`}>{lg.id}</Link>
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs text-slate-500 white">
+                    <td className="px-4 text-left py-4 font-mono  text-slate-500 white ">
                       {formatTs(lg.ts)}
                     </td>
                     <td
                       className={clsx(
-                        "px-4 py-2 text-xs font-medium",
+                        "px-4 py-4 ",
                         LEVEL_COLORS[lg.level]
                       )}
                     >
                       {lg.level}
                     </td>
-                    <td className="px-4 py-2 text-left font-medium text-xs">
+                    <td className="px-4 py-4 text-left font-medium ">
                       {lg.ip}
                     </td>
-                    <td className="px-4 py-2 text-left font-medium text-xs">
-                      {lg.url}
+                                        <td className="px-4 py-4 text-left font-medium ">
+                      {lg.method}
                     </td>
-                    <td className="px-4 py-2 text-left font-medium text-xs">
+                    <td className="px-4 py-4 text-left font-medium ">
+                      {lg.url.slice(0,25)}
+                    </td>
+                    <td className="px-4 py-4 text-left font-medium ">
                       {lg.status}
                     </td>
-                    <td className="px-4 py-2 text-left font-medium text-xs">
-                      {lg.latency}
+                    <td className="px-4 py-4 text-left font-medium ">
+                      {lg.latency} ms
                     </td>
-                    <td className="px-4 py-2 break-words text-slate-800">
+                    {/* <td className="px-4 py-4 break-words text-slate-800 whitespace-nowrap">
                       {lg.message}
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>
