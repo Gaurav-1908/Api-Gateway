@@ -1,80 +1,75 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import LogViewer from "./components/LogViewer";
-
-/*
-  App sets up some fake log streaming to demonstrate the LogViewer UI.
-  Replace/mock with your real log stream (websocket/fetch/polling).
-*/
-
-const LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"];
-
-function randomChoice(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function makeLog(i) {
-  const level = randomChoice(LEVELS);
-  const now = new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60)); // last hour
-  return {
-    id: `${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
-    ts: now.toISOString(),
-    level,
-    ip: "0.0.0.0",
-    status: 200,
-    url: "/order/id",
-    latency: 200,
-    message: `${level} message #${i} — sample component action: ${
-      ["auth", "db", "cache", "api", "scheduler"][i % 5]
-    }`,
-  };
-}
+import Settings from "./components/Settings";
+import Config from "./components/Config";
 
 export default function App() {
-  const [logs, setLogs] = useState([]);
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res = await fetch("http://localhost:5000/api/logs");
-        const data = await res.json();
-
-        // Normalize field names so LogViewer can use them
-        const normalized = data.map((log) => ({
-          id: log._id,
-          ts: log.timestamp || log.timeStamp, // support either
-          level: log.status >= 500 ? "ERROR" : log.status >= 400 ? "WARN" : "INFO",
-          ip: log.ip || "0.0.0.0", // fallback if not stored
-          status: log.status,
-          url: log.url,
-          latency: log.responseTime,
-          message: log.messagge || log.message, // typo fallback
-        }));
-
-        setLogs(normalized);
-      } catch (err) {
-        console.error("❌ Failed to fetch logs:", err);
-      }
-    }
-
-    fetchLogs();
-
-    // Optionally refresh logs every 10s (polling)
-    const interval = setInterval(fetchLogs, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const [activePage, setActivePage] = useState("logs");
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-800">Log Viewer</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            React + Vite + Tailwind demo with search, filters, tailing and
-            download.
-          </p>
-        </header>
+    <div className="min-h-screen flex bg-slate-50">
+      {/* Sidebar */}
+      <aside className="fixed top-0 left-0 h-screen w-64 bg-slate-800 text-white flex flex-col">
+        <div className="p-4 text-xl font-bold border-b border-slate-700">
+          My App
+        </div>
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          
+          <button
+            onClick={() => setActivePage("config")}
+            className={`block w-full text-left px-3 py-2 rounded hover:bg-slate-700 ${
+              activePage === "config" ? "bg-slate-700" : ""
+            }`}
+          >
+            Config
+          </button>
+          <button
+            onClick={() => setActivePage("logs")}
+            className={`block w-full text-left px-3 py-2 rounded hover:bg-slate-700 ${
+              activePage === "logs" ? "bg-slate-700" : ""
+            }`}
+          >
+            Log Viewer
+          </button>
+          <button
+            onClick={() => setActivePage("settings")}
+            className={`block w-full text-left px-3 py-2 rounded hover:bg-slate-700 ${
+              activePage === "settings" ? "bg-slate-700" : ""
+            }`}
+          >
+            Settings
+          </button>
+        </nav>
 
-        <LogViewer logs={logs} />
-      </div>
+        {/* Bottom section */}
+        <div className="p-4 border-t border-slate-700 mt-auto space-y-2">
+          <button
+            onClick={() => setActivePage("profile")}
+            className="block w-full text-left px-3 py-2 rounded hover:bg-slate-700"
+          >
+            👤 Account
+          </button>
+          <button
+            onClick={() => alert("Logging out...")}
+            className="block w-full text-left px-3 py-2 rounded hover:bg-slate-700 text-red-400"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="ml-64 flex-1 p-6 overflow-y-auto">
+        {activePage === "profile" && (
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-800">Profile</h1>
+            <p className="mt-2 text-slate-600">Profile details go here...</p>
+          </div>
+        )}
+        {activePage === "settings" && <Settings />}
+        {activePage === "config" && <Config />}
+        {activePage === "logs" && <LogViewer />}
+      </main>
     </div>
   );
 }

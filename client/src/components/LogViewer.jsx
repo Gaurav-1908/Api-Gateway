@@ -17,20 +17,54 @@ function formatTs(iso) {
   }
 }
 
-export default function LogViewer({ logs }) {
+export default function LogViewer() {
   const [levelFilter, setLevelFilter] = useState(() => new Set(LEVELS));
   const [query, setQuery] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [maxResults, setMaxResults] = useState(1000);
+
+    const [logs, setLogs] = useState([]);
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const res = await fetch("http://localhost:5000/api/logs");
+        const data = await res.json();
+
+        // Normalize field names so LogViewer can use them
+        const normalized = data.map((log) => ({
+          id: log._id,
+          ts: log.timestamp || log.timeStamp, // support either
+          level: log.status >= 500 ? "ERROR" : log.status >= 400 ? "WARN" : "INFO",
+          ip: log.ip || "0.0.0.0", // fallback if not stored
+          status: log.status,
+          url: log.url,
+          latency: log.responseTime,
+          message: log.messagge || log.message, // typo fallback
+        }));
+
+        setLogs(normalized);
+      } catch (err) {
+        console.error("❌ Failed to fetch logs:", err);
+      }
+    }
+
+    fetchLogs();
+
+    // Optionally refresh logs every 10s (polling)
+    const interval = setInterval(fetchLogs, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const containerRef = useRef(null);
   const listRef = useRef(null);
 
   // filter + search
   const visible = useMemo(() => {
+    console.log(logs.length);
     const q = query.trim().toLowerCase();
     const out = [];
-    for (let i = logs.length - 1; i >= 0; i--) {
+    if (!logs.length) return out;
+    for (let i = 0; i < maxResults; i++) {
       const lg = logs[i];
       if (!levelFilter.has(lg.level)) continue;
       if (q) {
@@ -38,10 +72,10 @@ export default function LogViewer({ logs }) {
         if (!hay.includes(q)) continue;
       }
       out.push(lg);
-      if (out.length >= maxResults) break;
+      if (out.length == logs.length) break;
     }
     // reverse so oldest at top
-    return out.reverse();
+    return out;
   }, [logs, levelFilter, query, maxResults]);
 
   // auto-scroll (tail) behavior
@@ -93,7 +127,16 @@ export default function LogViewer({ logs }) {
   }
 
   return (
-    <div className="bg-white shadow-sm rounded-md overflow-hidden">
+    <>
+    
+    <header className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-800">Log Viewer</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            View logs with search, filters, tailing and
+            download.
+          </p>
+        </header>
+            <div className="bg-white shadow-sm rounded-md overflow-hidden">
       {/* Toolbar */}
       <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -104,7 +147,7 @@ export default function LogViewer({ logs }) {
                 key={l}
                 onClick={() => toggleLevel(l)}
                 className={clsx(
-                  "px-2 py-1 rounded text-xs font-medium border",
+                  "px-2 py-1 rounded text-xs font-medium border cursor-pointer",
                   levelFilter.has(l)
                     ? "bg-slate-100 border-slate-200"
                     : "bg-white border-transparent opacity-50"
@@ -188,6 +231,9 @@ export default function LogViewer({ logs }) {
           <table className="w-full table-fixed text-sm">
             <thead className="bg-slate-50 sticky top-0 z-10">
               <tr>
+              <th className="w-44 px-4 py-2 text-left font-mono text-xs text-slate-500">
+                 id
+                </th>
                 <th className="w-44 px-4 py-2 text-left font-mono text-xs text-slate-500">
                   Timestamp
                 </th>
@@ -211,6 +257,9 @@ export default function LogViewer({ logs }) {
                   key={index}
                   className="border-b border-slate-100 hover:bg-slate-50"
                 >
+                  <td className="px-4 py-2 font-mono text-xs text-slate-500">
+                    {lg.id}
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs text-slate-500">
                     {formatTs(lg.ts)}
                   </td>
@@ -244,5 +293,7 @@ export default function LogViewer({ logs }) {
         </div>
       </div>
     </div>
+    </>
+
   );
 }
