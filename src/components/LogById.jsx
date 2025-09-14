@@ -25,7 +25,7 @@ export default function LogDetailPage() {
         if (!res.ok) throw new Error(`Failed to fetch log ${id}`);
         const data = await res.json();
         setLog(data);
-      } catch (err) {
+      } catch (err) { 
         setError(err.message);
       } finally {
         setLoading(false);
