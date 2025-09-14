@@ -1,6 +1,6 @@
 const Logger = require("./Logger")
 
-const logger = new Logger("./Logs/access.log")
+const logger = new Logger()
 module.exports.logRequestResponse = async (req, res, next) => {
   try {
     const start = Date.now();
@@ -14,6 +14,7 @@ module.exports.logRequestResponse = async (req, res, next) => {
     };
     res.on("finish", () => {
       const logEntry = {
+        ip: req.ip,
         method: req.method,
         url: req.originalUrl,
         status: res.statusCode || 200,
@@ -29,6 +30,7 @@ module.exports.logRequestResponse = async (req, res, next) => {
     res.on("close", () => {
       if (!res.writableEnded) {
         const logEntry = {
+          ip: req.ip,
           method: req.method,
           url: req.originalUrl,
           status: res.statusCode || 200,
@@ -38,7 +40,7 @@ module.exports.logRequestResponse = async (req, res, next) => {
           timeStamp: new Date(),
           messagge: " Client disconnected early",
         };
-        console.log(logEntry);
+        logger.write(logEntry);
       }
     });
     next();

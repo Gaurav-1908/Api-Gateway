@@ -1,5 +1,8 @@
 const express = require("express");
-const conf = require("./conf.json"); // import JSON
+const conf = require("./conf.json");
+const dotenv = require("dotenv")
+dotenv.config()
+
 const { rateLimiter } = require("./src/rateLimiter");
 const { getService } = require("./src/getService");
 const { getResponse } = require("./src/getResponse")

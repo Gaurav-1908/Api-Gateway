@@ -4,7 +4,8 @@ const { MongoClient } = require("mongodb");
 
 class Logger {
   constructor() {
-    this.mongoUrl = conf.mongo.url;
+    this.mongoUrl = process.env.MONGO_URL;
+    console.log(process.env.MONGO_URL)
     this.dbName = "API-GATEWAY";
     this.collectionName = "LOGS";
     this.messageBuffer = [];
