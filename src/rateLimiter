@@ -1,0 +1,38 @@
+const Redis = require("ioredis");
+const redis = new Redis({
+  host: process.env.REDIS_HOST,  
+  port: process.env.REDIS_PORT,         
+  password: process.env.REDIS_PASSWORD,             
+});
+
+module.exports.rateLimiter = async (req, res, next) => {
+  try {
+    const service = req.service;
+    if (!service.rateLimiter) {
+      return next();
+    }
+    const ip = req.ip;
+    const key = `rate:${service.group}:${ip}`;
+
+    const count = await redis.incr(key);
+    console.log(count)
+    if (count === 1) {
+      // first request, set expiry
+      if(service.rateLimiter.window){
+        await redis.expire(key, service.rateLimiter.window);
+      }
+      
+    }
+
+    if (count > service.rateLimiter.limit) {
+      return res.status(429).json({
+        message: "Too many requests, please try again later.",
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
+};
